@@ -29,6 +29,25 @@ export interface ReadinessResponse {
   };
 }
 
+export type UserRole = "ADMIN" | "SALES";
+
+export interface User {
+  id: string;
+  full_name: string;
+  email: string;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in_minutes: number;
+  user: User;
+}
+
 export type PriorityLevel = "HIGH" | "MEDIUM" | "LOW";
 export type EnrichmentStatus = "PENDING" | "COMPLETED" | "FAILED";
 
@@ -60,6 +79,9 @@ export interface Contact {
   department: string | null;
   seniority: string | null;
   linkedin_url: string | null;
+  verification_status: string;
+  is_decision_maker: boolean;
+  buying_role: string | null;
   created_at: string;
 }
 

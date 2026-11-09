@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from app.config import get_settings
 from app.database import Base
+import app.models  # Ensure all models are registered in Base.metadata
 
 config = context.config
 

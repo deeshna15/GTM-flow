@@ -1,19 +1,10 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health
+from app.api.v1.endpoints import health, auth
 
 api_router = APIRouter()
 
-# Include Phase 1 health and readiness endpoints
+# Health and readiness
 api_router.include_router(health.router, prefix="", tags=["Health"])
 
-# Subsequent phases will register:
-# - auth.router (/auth)
-# - dashboard.router (/dashboard)
-# - accounts.router (/accounts)
-# - contacts.router (/contacts)
-# - imports.router (/imports)
-# - enrichment.router (/enrichment)
-# - scoring.router (/scoring)
-# - automations.router (/automations)
-# - jobs.router (/jobs)
-# - users.router (/users)
+# Authentication and user security
+api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
