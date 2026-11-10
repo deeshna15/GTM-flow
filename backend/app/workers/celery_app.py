@@ -22,6 +22,9 @@ celery_app.conf.update(
     task_reject_on_worker_lost=True,
     worker_prefetch_multiplier=1,
     result_expires=86400,  # 24 hours
+    broker_connection_retry_on_startup=False,
+    broker_connection_max_retries=1,
+    broker_transport_options={"socket_connect_timeout": 1, "socket_timeout": 1},
 )
 
 

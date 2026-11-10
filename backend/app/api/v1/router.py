@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, accounts, contacts
+from app.api.v1.endpoints import health, auth, accounts, contacts, imports
 
 api_router = APIRouter()
 
@@ -12,3 +12,6 @@ api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 # Core GTM entities
 api_router.include_router(accounts.router, prefix="/accounts", tags=["Accounts"])
 api_router.include_router(contacts.router, prefix="/contacts", tags=["Contacts"])
+
+# Data Ingestion Engine
+api_router.include_router(imports.router, prefix="/imports", tags=["Imports"])

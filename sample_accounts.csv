@@ -1,0 +1,9 @@
+company_name,website,industry,country,employee_count,description
+Northstar Security,northstarsecurity.example,Cybersecurity,Germany,150,Security software provider
+CloudBridge,cloudbridge.example,SaaS,France,300,Cloud infrastructure company
+SecureStack,securestack.example,Software,Netherlands,85,Enterprise software company
+DataOrbit,dataorbit.example,Technology,Germany,45,Data analytics provider
+FinCore,fincore.example,Financial Services,France,220,Financial technology company
+TechNova,technova.example,IT Services,India,500,IT services provider
+CyberNest,cybernest.example,Cybersecurity,Austria,120,Security consulting company
+Northstar Security,northstarsecurity.example,Cybersecurity,Germany,150,Duplicate test record
