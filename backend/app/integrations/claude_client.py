@@ -267,7 +267,6 @@ class ClaudeClient:
                 response = client.messages.create(
                     model=self.model,
                     max_tokens=self.max_tokens,
-                    temperature=0.1,
                     system=SYSTEM_PROMPT,
                     messages=[{"role": "user", "content": user_prompt}],
                 )

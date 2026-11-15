@@ -186,12 +186,13 @@ def test_bulk_enrich_endpoint_and_feed(
 ):
     headers = {"Authorization": f"Bearer {sales_token}"}
 
-    # Trigger bulk enrich (will run via offline heuristic sync fallback without Redis/API key)
-    res = client.post(
-        "/api/v1/accounts/bulk-enrich",
-        json={"account_ids": [str(target_account.id)], "limit": 10},
-        headers=headers,
-    )
+    # Trigger bulk enrich (force synchronous fallback in unit test)
+    with patch("app.api.v1.endpoints.enrichment.check_redis_health", return_value={"status": "unhealthy"}):
+        res = client.post(
+            "/api/v1/accounts/bulk-enrich",
+            json={"account_ids": [str(target_account.id)], "limit": 10},
+            headers=headers,
+        )
     assert res.status_code == 202
     body = res.json()
     assert body["queued_count"] == 1
