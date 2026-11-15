@@ -6,7 +6,7 @@ const API_BASE_URL =
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -24,22 +24,31 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor for unified error handling
+// Interceptor for unified error handling and 401 expiry redirect
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
+    if (
+      typeof window !== "undefined" &&
+      error.response?.status === 401 &&
+      !window.location.pathname.startsWith("/login")
+    ) {
+      localStorage.removeItem("gtmflow_token");
+      localStorage.removeItem("gtmflow_user");
+      window.location.href = "/login";
+    }
+
     const message =
       error.response?.data?.detail ||
       error.response?.data?.message ||
       error.message ||
       "An unexpected error occurred";
-    return Promise.reject(new Error(message));
+    return Promise.reject(new Error(typeof message === "string" ? message : JSON.stringify(message)));
   }
 );
 
 export const healthApi = {
   getLiveness: async (): Promise<SystemHealth> => {
-    // Both /health at root or inside api_v1 are supported
     const response = await axios.get<SystemHealth>(
       API_BASE_URL.replace("/api/v1", "/health")
     );

@@ -3,367 +3,392 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Shield,
-  Server,
-  Database,
-  Cpu,
-  Layers,
-  ArrowRight,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import {
   Building2,
   Users,
+  Target,
   Sparkles,
-  Zap,
+  TrendingUp,
+  CheckCircle2,
+  XCircle,
+  UploadCloud,
+  RefreshCw,
+  ArrowRight,
+  ExternalLink,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Alert } from "@/components/ui/Alert";
-import { healthApi } from "@/services/api";
-import { SystemHealth, ReadinessResponse } from "@/types";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { dashboardApi, DashboardOverview } from "@/services/dashboard";
+import { formatDate, formatNumber, getPriorityColor } from "@/lib/utils";
+
+const PIE_COLORS = ["#10b981", "#f59e0b", "#64748b", "#cbd5e1"];
 
 export default function DashboardPage() {
-  const [healthData, setHealthData] = useState<SystemHealth | null>(null);
-  const [readinessData, setReadinessData] = useState<ReadinessResponse | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [lastCheck, setLastCheck] = useState<string>("");
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const runHealthChecks = async () => {
+  const loadOverview = async () => {
     setIsLoading(true);
+    setErrorMsg(null);
     try {
-      const [health, ready] = await Promise.allSettled([
-        healthApi.getLiveness(),
-        healthApi.getReadiness(),
-      ]);
-
-      if (health.status === "fulfilled") {
-        setHealthData(health.value);
-      }
-      if (ready.status === "fulfilled") {
-        setReadinessData(ready.value);
-      }
+      const data = await dashboardApi.getOverview();
+      setOverview(data);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to load dashboard metrics.");
     } finally {
       setIsLoading(false);
-      setLastCheck(new Date().toLocaleTimeString());
     }
   };
 
   useEffect(() => {
-    runHealthChecks();
+    loadOverview();
   }, []);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Top Banner & Header */}
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              GTM Lead Intelligence & Sales Automation
-            </h1>
-            <Badge variant="default" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
-              Phase 1: Foundation
-            </Badge>
-          </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            GTM Intelligence Command Center
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Enterprise architecture blueprint for Secfix GTM Engineering. Clean data ingestion, AI enrichment, and automated routing.
+            Real-time pipeline telemetry, ICP scoring distributions, and background automation health.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={runHealthChecks}
-            isLoading={isLoading}
-            className="text-xs"
-          >
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-            Check API Health
+        <div className="flex items-center gap-2.5">
+          <Button variant="outline" size="sm" onClick={loadOverview} disabled={isLoading} className="text-xs">
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            Refresh Metrics
           </Button>
-
           <Link href="/imports">
-            <Button size="sm" className="text-xs bg-indigo-600 hover:bg-indigo-700">
-              Import Company CSV
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            <Button size="sm" className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
+              <UploadCloud className="mr-1.5 h-3.5 w-3.5" />
+              Import Accounts CSV
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* System Status Alert */}
-      <Alert variant={healthData ? "success" : "info"} title="System Operational Architecture">
-        Backend FastAPI service is running with structured logging, CORS middleware, connection pooling, and versioned REST endpoints at <code className="font-mono bg-white/70 px-1.5 py-0.5 rounded text-xs text-indigo-800">/api/v1</code>.
-        {lastCheck && <span className="ml-2 text-slate-500 font-normal">(Last checked: {lastCheck})</span>}
-      </Alert>
+      {errorMsg && (
+        <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">
+          {errorMsg}
+        </div>
+      )}
 
-      {/* Core Infrastructure Health Grid */}
-      <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
-          <Layers className="h-4 w-4 text-slate-500" />
-          Infrastructure Stack & Connectivity Status
-        </h2>
+      {/* Primary KPI Grid */}
+      {isLoading || !overview ? (
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+          <Card className="p-4 border border-slate-200 bg-white">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Accounts</span>
+              <Building2 className="h-4 w-4 text-indigo-600" />
+            </div>
+            <p className="text-2xl font-bold text-slate-900 mt-2">{formatNumber(overview.total_accounts)}</p>
+          </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: FastAPI REST Service */}
-          <Card className="hover:border-slate-300 transition-all">
-            <CardHeader className="p-5 pb-3">
-              <div className="flex items-center justify-between">
-                <div className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <Server className="h-5 w-5" />
-                </div>
-                {healthData ? (
-                  <Badge variant="high">200 OK</Badge>
-                ) : (
-                  <Badge variant="outline">Connecting...</Badge>
-                )}
-              </div>
-              <CardTitle className="text-base mt-3">FastAPI REST Core</CardTitle>
-              <CardDescription className="text-xs">
-                Python 3.13 + SQLAlchemy 2 + Pydantic v2
-              </CardDescription>
+          <Card className="p-4 border border-slate-200 bg-white">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Contacts</span>
+              <Users className="h-4 w-4 text-indigo-600" />
+            </div>
+            <p className="text-2xl font-bold text-slate-900 mt-2">{formatNumber(overview.total_contacts)}</p>
+          </Card>
+
+          <Card className="p-4 border border-emerald-200 bg-emerald-50/40">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">High Priority</span>
+              <Target className="h-4 w-4 text-emerald-600" />
+            </div>
+            <p className="text-2xl font-bold text-emerald-700 mt-2">{formatNumber(overview.high_priority_accounts)}</p>
+          </Card>
+
+          <Card className="p-4 border border-amber-200 bg-amber-50/40">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Needs AI Enrich</span>
+              <Sparkles className="h-4 w-4 text-amber-600" />
+            </div>
+            <p className="text-2xl font-bold text-amber-700 mt-2">{formatNumber(overview.accounts_awaiting_enrichment)}</p>
+          </Card>
+
+          <Card className="p-4 border border-slate-200 bg-white">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Avg Lead Score</span>
+              <TrendingUp className="h-4 w-4 text-indigo-600" />
+            </div>
+            <p className="text-2xl font-bold text-indigo-600 mt-2">{overview.average_lead_score}</p>
+          </Card>
+
+          <Card className="p-4 border border-slate-200 bg-white">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Worker Jobs</span>
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            </div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-xl font-bold text-emerald-700">{overview.successful_jobs}</span>
+              <span className="text-xs text-slate-400">/</span>
+              <span className="text-sm font-bold text-rose-600">{overview.failed_jobs} err</span>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Recharts Analytics Row */}
+      {overview && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Industry Distribution */}
+          <Card className="border border-slate-200 bg-white">
+            <CardHeader className="p-5 pb-2">
+              <CardTitle className="text-sm">Accounts by Industry</CardTitle>
+              <CardDescription className="text-xs">Top operating sectors in CRM</CardDescription>
             </CardHeader>
-            <CardContent className="p-5 pt-0 text-xs text-slate-600">
-              <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Environment:</span>
-                  <span className="font-medium">{healthData?.environment || "development"}</span>
+            <CardContent className="p-5 pt-2 h-64">
+              {overview.industry_distribution.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                  No account industry data yet
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Version:</span>
-                  <span className="font-medium">{healthData?.version || "1.0.0"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">OpenAPI Docs:</span>
-                  <a
-                    href="http://localhost:8000/docs"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-medium text-indigo-600 hover:underline"
-                  >
-                    /docs
-                  </a>
-                </div>
-              </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={overview.industry_distribution} layout="vertical" margin={{ left: 10, right: 16 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "#64748b" }} />
+                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10, fill: "#334155" }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#4f46e5" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
-          {/* Card 2: PostgreSQL Storage */}
-          <Card className="hover:border-slate-300 transition-all">
-            <CardHeader className="p-5 pb-3">
-              <div className="flex items-center justify-between">
-                <div className="h-9 w-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Database className="h-5 w-5" />
-                </div>
-                {readinessData?.dependencies?.database?.status === "healthy" ? (
-                  <Badge variant="high">Connected</Badge>
-                ) : (
-                  <Badge variant="outline">Docker / Ready</Badge>
-                )}
-              </div>
-              <CardTitle className="text-base mt-3">PostgreSQL 16</CardTitle>
-              <CardDescription className="text-xs">
-                Relational schema + JSONB + Alembic
-              </CardDescription>
+          {/* Country Distribution */}
+          <Card className="border border-slate-200 bg-white">
+            <CardHeader className="p-5 pb-2">
+              <CardTitle className="text-sm">Accounts by Country</CardTitle>
+              <CardDescription className="text-xs">European & target market coverage</CardDescription>
             </CardHeader>
-            <CardContent className="p-5 pt-0 text-xs text-slate-600">
-              <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Port:</span>
-                  <span className="font-medium">5432</span>
+            <CardContent className="p-5 pt-2 h-64">
+              {overview.country_distribution.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                  No country data yet
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Driver:</span>
-                  <span className="font-medium">psycopg3</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Connection Pool:</span>
-                  <span className="font-medium">Pre-ping enabled</span>
-                </div>
-              </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={overview.country_distribution} margin={{ left: -16, right: 12 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#334155" }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#64748b" }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
-          {/* Card 3: Redis Broker & Celery */}
-          <Card className="hover:border-slate-300 transition-all">
-            <CardHeader className="p-5 pb-3">
-              <div className="flex items-center justify-between">
-                <div className="h-9 w-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                  <Cpu className="h-5 w-5" />
-                </div>
-                {readinessData?.dependencies?.redis?.status === "healthy" ? (
-                  <Badge variant="high">Broker Active</Badge>
-                ) : (
-                  <Badge variant="outline">Port 6379</Badge>
-                )}
-              </div>
-              <CardTitle className="text-base mt-3">Celery + Redis</CardTitle>
-              <CardDescription className="text-xs">
-                Asynchronous Task Queue & Scheduling
-              </CardDescription>
+          {/* Priority Breakdown */}
+          <Card className="border border-slate-200 bg-white">
+            <CardHeader className="p-5 pb-2">
+              <CardTitle className="text-sm">Priority Tier Split</CardTitle>
+              <CardDescription className="text-xs">Deterministic score classification</CardDescription>
             </CardHeader>
-            <CardContent className="p-5 pt-0 text-xs text-slate-600">
-              <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Broker:</span>
-                  <span className="font-medium">Redis 7</span>
+            <CardContent className="p-5 pt-2 h-64 flex flex-col justify-between">
+              {overview.total_accounts === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                  No priority data yet
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Prefetch:</span>
-                  <span className="font-medium">1 (Fair Distribution)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Celery Beat:</span>
-                  <span className="font-medium">Periodic Schedules</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 4: Claude AI Engine */}
-          <Card className="hover:border-slate-300 transition-all">
-            <CardHeader className="p-5 pb-3">
-              <div className="flex items-center justify-between">
-                <div className="h-9 w-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <Sparkles className="h-5 w-5" />
-                </div>
-                <Badge variant="medium">Anthropic SDK</Badge>
-              </div>
-              <CardTitle className="text-base mt-3">Claude 3.5 Sonnet</CardTitle>
-              <CardDescription className="text-xs">
-                Deterministic Structured Enrichment
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-5 pt-0 text-xs text-slate-600">
-              <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Schema:</span>
-                  <span className="font-medium">Pydantic Validated</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Buying Signals:</span>
-                  <span className="font-medium">Evidence-backed</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Retries:</span>
-                  <span className="font-medium">Exponential Backoff</span>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height="78%">
+                    <PieChart>
+                      <Pie
+                        data={overview.priority_distribution}
+                        dataKey="count"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={42}
+                        outerRadius={68}
+                        paddingAngle={3}
+                      >
+                        {overview.priority_distribution.map((_, idx) => (
+                          <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-wrap justify-center gap-3 text-[11px] text-slate-600">
+                    {overview.priority_distribution.map((p, idx) => (
+                      <div key={p.name} className="flex items-center gap-1.5">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
+                        />
+                        <span>
+                          {p.name}: <strong>{p.count}</strong>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
-      </div>
+      )}
 
-      {/* Workflow Map & Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">GTM Platform Architecture & Roadmap</CardTitle>
-            <CardDescription>
-              Phase-by-phase implementation designed to match the Secfix GTM Engineer technical requirements.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {[
-              {
-                phase: "Phase 1",
-                title: "Foundation & Architecture",
-                desc: "FastAPI REST API, SQLAlchemy 2, Alembic, Docker Compose, structured logging, Next.js frontend design system.",
-                done: true,
-              },
-              {
-                phase: "Phase 2",
-                title: "Authentication & Relational Schemas",
-                desc: "PostgreSQL models with UUIDs, unique domain constraints, JWT tokens, RBAC roles (ADMIN / SALES).",
-                done: false,
-              },
-              {
-                phase: "Phase 3",
-                title: "Account & Contact Management",
-                desc: "Account CRUD, contact relationships, buying committee, domain search, industry filtering, pagination.",
-                done: false,
-              },
-              {
-                phase: "Phase 4",
-                title: "CSV Ingestion Engine & Deduplication",
-                desc: "Dynamic column mapping, chunked parsing, URL normalization, domain matching, conflict resolution policy.",
-                done: false,
-              },
-              {
-                phase: "Phase 5",
-                title: "Claude AI Enrichment & Research",
-                desc: "Anthropic SDK client, structured Pydantic schemas, ISO/SOC 2 compliance relevance, buying signals.",
-                done: false,
-              },
-              {
-                phase: "Phase 6",
-                title: "Lead Scoring & Sales Routing",
-                desc: "Deterministic 100-pt scoring model, configurable weights, least-loaded representative assignment.",
-                done: false,
-              },
-            ].map((p, idx) => (
-              <div
-                key={idx}
-                className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors"
-              >
-                <div className="mt-0.5">
-                  {p.done ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                  ) : (
-                    <div className="h-5 w-5 rounded-full border-2 border-slate-300 text-[10px] font-bold text-slate-400 flex items-center justify-center">
-                      {idx + 1}
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-800">{p.phase}:</span>
-                    <span className="text-xs font-semibold text-slate-900">{p.title}</span>
-                    {p.done && (
-                      <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded font-medium border border-emerald-200">
-                        Completed
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 mt-0.5">{p.desc}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Live Diagnostics Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">System Diagnostics</CardTitle>
-            <CardDescription>Live healthcheck payload from FastAPI</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-3 rounded-lg bg-slate-900 text-slate-100 font-mono text-[11px] overflow-x-auto space-y-1">
-              <div className="text-slate-400">// GET /health</div>
-              <div>{JSON.stringify(healthData || { status: "fetching..." }, null, 2)}</div>
-            </div>
-
-            <div className="p-3 rounded-lg bg-slate-900 text-slate-100 font-mono text-[11px] overflow-x-auto space-y-1">
-              <div className="text-slate-400">// GET /ready</div>
+      {/* Bottom Operational Feeds */}
+      {overview && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Top Priority Accounts */}
+          <Card className="lg:col-span-2 border border-slate-200 bg-white overflow-hidden">
+            <CardHeader className="p-5 border-b border-slate-100 flex flex-row items-center justify-between">
               <div>
-                {JSON.stringify(
-                  readinessData || { status: "checking dependencies..." },
-                  null,
-                  2
-                )}
+                <CardTitle className="text-sm">Highest Priority Target Accounts</CardTitle>
+                <CardDescription className="text-xs">Ready for immediate sales outreach & compliance review</CardDescription>
               </div>
+              <Link href="/accounts" className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1">
+                View All <ArrowRight className="h-3 w-3" />
+              </Link>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 text-[10px] uppercase">
+                  <tr>
+                    <th className="px-4 py-2.5">Company</th>
+                    <th className="px-4 py-2.5">Market</th>
+                    <th className="px-4 py-2.5">Score</th>
+                    <th className="px-4 py-2.5">Priority</th>
+                    <th className="px-4 py-2.5">Owner</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {overview.top_priority_accounts.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                        No accounts ingested yet. Import a CSV to populate your pipeline.
+                      </td>
+                    </tr>
+                  ) : (
+                    overview.top_priority_accounts.map((acc) => {
+                      const pri = getPriorityColor(acc.priority);
+                      return (
+                        <tr key={acc.id} className="hover:bg-slate-50/70">
+                          <td className="px-4 py-2.5">
+                            <Link href={`/accounts/${acc.id}`} className="font-bold text-slate-900 hover:text-indigo-600 flex items-center gap-1">
+                              {acc.company_name}
+                              <ExternalLink className="h-3 w-3 text-slate-400" />
+                            </Link>
+                            <span className="text-[11px] font-mono text-slate-400">{acc.domain || "—"}</span>
+                          </td>
+                          <td className="px-4 py-2.5 text-slate-600">
+                            {acc.country || "—"} &bull; {acc.industry || "—"}
+                          </td>
+                          <td className="px-4 py-2.5 font-mono font-bold text-slate-900">
+                            {acc.lead_score ?? "—"}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {acc.priority ? (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${pri.badge}`}>
+                                {acc.priority}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5 text-slate-600">
+                            {acc.assigned_user_name || <span className="text-amber-600">Unassigned</span>}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
+          </Card>
 
-            <div className="text-xs text-slate-500 space-y-1">
-              <p>• Ready probe tests PostgreSQL connection latency.</p>
-              <p>• Readiness reports 503 until docker compose services start.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Recent Imports & Activities */}
+          <div className="space-y-6">
+            <Card className="border border-slate-200 bg-white">
+              <CardHeader className="p-4 border-b border-slate-100 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm">Recent CSV Imports</CardTitle>
+                <Link href="/imports" className="text-[11px] font-semibold text-indigo-600 hover:underline">
+                  Manage
+                </Link>
+              </CardHeader>
+              <CardContent className="p-4 space-y-2.5 text-xs">
+                {overview.recent_imports.length === 0 ? (
+                  <p className="text-slate-400 text-center py-3">No CSV imports yet.</p>
+                ) : (
+                  overview.recent_imports.map((imp) => (
+                    <div key={imp.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-800 truncate">{imp.file_name}</p>
+                        <p className="text-[10px] text-slate-400">
+                          {imp.processed_records} processed &bull; {imp.duplicate_records} deduped
+                        </p>
+                      </div>
+                      <Badge className="text-[10px] shrink-0">{imp.status}</Badge>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 bg-white">
+              <CardHeader className="p-4 border-b border-slate-100">
+                <CardTitle className="text-sm flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-indigo-600" />
+                  Recent Pipeline Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-2.5 text-xs max-h-64 overflow-y-auto">
+                {overview.recent_activities.length === 0 ? (
+                  <p className="text-slate-400 text-center py-3">No activity recorded yet.</p>
+                ) : (
+                  overview.recent_activities.map((act) => (
+                    <div key={act.id} className="pb-2 border-b border-slate-100 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[10px] text-indigo-700 uppercase tracking-wider">
+                          {act.action}
+                        </span>
+                        <span className="text-[10px] text-slate-400">{formatDate(act.created_at)}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-0.5 truncate">
+                        {act.entity_type} {act.new_values ? `• ${JSON.stringify(act.new_values)}` : ""}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

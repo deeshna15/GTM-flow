@@ -17,8 +17,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application source code
 COPY . .
 
+# Create uploads directory
+RUN mkdir -p /app/uploads
+
 # Expose FastAPI default port
 EXPOSE 8000
 
-# Run entrypoint
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run Alembic migrations automatically before starting FastAPI
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

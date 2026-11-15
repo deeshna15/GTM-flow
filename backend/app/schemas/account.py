@@ -1,8 +1,11 @@
 import uuid
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import List, Optional
 from pydantic import BaseModel, Field, ConfigDict
 from app.models.account import PriorityLevel, EnrichmentStatus
+from app.schemas.contact import ContactRead
+from app.schemas.enrichment import EnrichmentRecordRead
+from app.schemas.scoring import LeadScoreRead
 
 
 class AccountBase(BaseModel):
@@ -42,6 +45,18 @@ class AssignedUserSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AccountSourceRead(BaseModel):
+    id: uuid.UUID
+    account_id: uuid.UUID
+    field_name: str
+    original_value: Optional[str] = None
+    source_name: str
+    confidence: float
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AccountRead(AccountBase):
     id: uuid.UUID
     source: str
@@ -65,9 +80,9 @@ class AccountPagination(BaseModel):
 
 
 class AccountDetail(AccountRead):
-    contacts: List[Any] = []
-    enrichment_records: List[Any] = []
-    lead_scores: List[Any] = []
-    sources: List[Any] = []
+    contacts: List[ContactRead] = []
+    enrichment_records: List[EnrichmentRecordRead] = []
+    lead_scores: List[LeadScoreRead] = []
+    sources: List[AccountSourceRead] = []
 
     model_config = ConfigDict(from_attributes=True)

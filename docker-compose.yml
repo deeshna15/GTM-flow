@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -85,7 +83,10 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-gtmflow_super_secret_development_key_minimum_32_characters_long}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-gtmflow_jwt_secret_development_key_minimum_32_characters_long}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
     volumes:
       - ./uploads:/app/uploads
     networks:
@@ -107,6 +108,10 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-gtmflow_super_secret_development_key_minimum_32_characters_long}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-gtmflow_jwt_secret_development_key_minimum_32_characters_long}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
     networks:
       - gtmflow_network
 
@@ -114,6 +119,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
     container_name: gtmflow_frontend
     restart: unless-stopped
     ports:

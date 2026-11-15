@@ -57,6 +57,9 @@ data/
 uploads/
 *.sqlite3
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # OS / Editor
 .DS_Store

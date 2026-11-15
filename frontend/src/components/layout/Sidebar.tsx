@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Building2,
@@ -15,8 +15,11 @@ import {
   Settings,
   ShieldCheck,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { authApi } from "@/services/auth";
+import { User } from "@/types";
 
 const navigationItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -32,6 +35,44 @@ const navigationItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("gtmflow_user");
+      if (cached) {
+        try {
+          setUser(JSON.parse(cached));
+        } catch {
+          // ignore
+        }
+      }
+      authApi
+        .getCurrentUser()
+        .then((u) => {
+          setUser(u);
+          localStorage.setItem("gtmflow_user", JSON.stringify(u));
+        })
+        .catch(() => {
+          // handled by interceptor
+        });
+    }
+  }, []);
+
+  const handleLogout = () => {
+    authApi.logout();
+    router.replace("/login");
+  };
+
+  const initials = user?.full_name
+    ? user.full_name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "SF";
 
   return (
     <aside className="w-64 border-r border-slate-200 bg-white flex flex-col h-screen fixed left-0 top-0 z-30 select-none">
@@ -60,9 +101,7 @@ export function Sidebar() {
         </div>
         {navigationItems.map((item) => {
           const isActive =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
+            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
 
           return (
@@ -100,15 +139,32 @@ export function Sidebar() {
 
       {/* User Footer Profile */}
       <div className="p-3 border-t border-slate-100 bg-slate-50/60">
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-white border border-slate-200/70 shadow-2xs">
-          <div className="h-8 w-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs">
-            SF
+        <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white border border-slate-200/70 shadow-2xs">
+          <div className="h-8 w-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs shrink-0">
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-slate-900 truncate">Secfix GTM Engineer</p>
-            <p className="text-[10px] text-slate-500 truncate">admin@secfix-gtm.local</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-semibold text-slate-900 truncate">
+                {user?.full_name || "GTM User"}
+              </p>
+              {user?.role && (
+                <span className="text-[9px] font-bold uppercase px-1 py-0.2 rounded bg-indigo-50 text-indigo-700">
+                  {user.role}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-500 truncate">
+              {user?.email || "Authenticated"}
+            </p>
           </div>
-          <div className="h-2 w-2 rounded-full bg-emerald-500" title="Connected" />
+          <button
+            onClick={handleLogout}
+            title="Sign Out"
+            className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </aside>
