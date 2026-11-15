@@ -128,6 +128,23 @@ def test_claude_client_offline_heuristic_when_key_missing():
     assert "GDPR" in res.payload.compliance_relevance
 
 
+def test_claude_client_offline_fallback_on_401_authentication_error():
+    mock_client_instance = MagicMock()
+    req = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    resp = httpx.Response(401, request=req, json={"error": {"type": "authentication_error", "message": "Invalid bearer token"}})
+    auth_err = anthropic.AuthenticationError("Invalid bearer token", response=resp, body=None)
+    mock_client_instance.messages.create.side_effect = auth_err
+
+    with patch("app.integrations.claude_client.anthropic.Anthropic", return_value=mock_client_instance):
+        client = ClaudeClient(api_key="sk-ant-invalid-token", retry_base_delay=0.0)
+        res = client.analyze_company({"company_name": "Auth Fail Corp", "country": "Germany", "industry": "SaaS"})
+
+    assert res.success is True
+    assert res.provider == "HEURISTIC_FALLBACK"
+    assert res.payload is not None
+    assert "Invalid bearer token" in res.payload.confidence_notes
+
+
 def test_enrich_endpoints_and_review_workflow(
     client: TestClient, sales_token: str, target_account: Account, db_session: Session
 ):

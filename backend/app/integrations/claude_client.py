@@ -312,6 +312,26 @@ class ClaudeClient:
             except (json.JSONDecodeError, ValidationError, ValueError) as parse_err:
                 last_error = f"Structured output validation error on attempt {attempt}/{total_attempts}: {parse_err}"
                 logger.warning(last_error)
+            except anthropic.AuthenticationError as auth_err:
+                logger.warning(f"Anthropic authentication error (invalid API key): {auth_err}")
+                if not require_api_key:
+                    heuristic_payload = self._heuristic_analyze(snapshot)
+                    heuristic_payload.confidence_notes = (
+                        "Anthropic API key returned 401 (Invalid bearer token). "
+                        "Completed via evidence-based heuristic analyzer. "
+                        "To use live Claude 3.5 Sonnet, provide a valid Anthropic API key (sk-ant-api03-...) in .env."
+                    )
+                    return ClaudeAnalysisResult(
+                        provider="HEURISTIC_FALLBACK",
+                        model_name="evidence-heuristic-v1",
+                        payload=heuristic_payload,
+                        tokens_used=0,
+                        latency_ms=round((time.time() - start_time) * 1000, 2),
+                        success=True,
+                        error_message=None,
+                    )
+                last_error = f"Anthropic Authentication Error: {auth_err}"
+                break
             except anthropic.APIError as fatal_err:
                 last_error = f"Anthropic API error: {fatal_err}"
                 logger.error(last_error)
